@@ -429,6 +429,137 @@
             border-radius: var(--radius-sm);
         }
 
+        /* Toast Notification */
+        #toast-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 16px;
+            gap: 10px;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .toast {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            background: rgba(30, 30, 50, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            max-width: 400px;
+            width: 90%;
+            pointer-events: auto;
+            animation: slideDown 0.3s ease-out;
+            transform-origin: top center;
+        }
+
+        .toast.hiding {
+            animation: slideUp 0.25s ease-in forwards;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+
+            to {
+                opacity: 0;
+                transform: translateY(-20px) scale(0.95);
+            }
+        }
+
+        .toast-icon {
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .toast-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .toast-title {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .toast-message {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .toast-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+            font-size: 1.1rem;
+            opacity: 0.7;
+            transition: opacity 0.2s;
+            flex-shrink: 0;
+        }
+
+        .toast-close:hover {
+            opacity: 1;
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--accent-danger);
+        }
+
+        .toast.error .toast-icon {
+            color: var(--accent-danger);
+        }
+
+        .toast.warning {
+            border-left: 4px solid var(--accent-warning);
+        }
+
+        .toast.warning .toast-icon {
+            color: var(--accent-warning);
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--accent-success);
+        }
+
+        .toast.success .toast-icon {
+            color: var(--accent-success);
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--accent-primary);
+        }
+
+        .toast.info .toast-icon {
+            color: var(--accent-primary);
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             body {
@@ -505,6 +636,8 @@
 </head>
 
 <body>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
     <!-- Board Section -->
     <div id="boardContainer">
         <div id="board"></div>
@@ -623,6 +756,46 @@
         function updateCellSize() {
             size = calculateCellSize();
             document.documentElement.style.setProperty('--cell-size', size + 'px');
+        }
+
+        // Toast notification system
+        function showToast(message, type = 'error', title = null) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+
+            const icons = {
+                error: '😅',
+                warning: '⚠️',
+                success: '✨',
+                info: 'ℹ️'
+            };
+
+            const defaultTitles = {
+                error: 'อุ๊ปส์!',
+                warning: 'ระวังนะ',
+                success: 'สำเร็จ!',
+                info: 'แจ้งให้ทราบ'
+            };
+
+            toast.innerHTML = `
+                <span class="toast-icon">${icons[type] || icons.error}</span>
+                <div class="toast-content">
+                    <div class="toast-title">${title || defaultTitles[type]}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.classList.add('hiding'); setTimeout(() => this.parentElement.remove(), 250)">✕</button>
+            `;
+
+            container.appendChild(toast);
+
+            // Auto dismiss after 4 seconds
+            setTimeout(() => {
+                if (toast.parentElement) {
+                    toast.classList.add('hiding');
+                    setTimeout(() => toast.remove(), 250);
+                }
+            }, 4000);
         }
 
         function same(a, b) { return a && b && a[0] === b[0] && a[1] === b[1]; }
@@ -848,7 +1021,7 @@
                 return;
             }
 
-            try { runAuto(); } catch (e) { alert(e); }
+            try { runAuto(); } catch (e) { showToast(e, 'error'); }
         }
 
         function runAuto() {
@@ -865,7 +1038,7 @@
                 step = 0;
                 finished = false;
                 drawStep();
-                alert("เคสนี้เป็นไปไม่ได้: " + feas.why);
+                showToast(feas.why, 'warning', 'เคสนี้เป็นไปไม่ได้');
                 return;
             }
 
@@ -875,7 +1048,7 @@
                 step = 0;
                 finished = false;
                 drawStep();
-                alert("เคสนี้เป็นไปไม่ได้: start มีทางออกน้อยกว่า 2 สำหรับ cycle");
+                showToast('จุดเริ่มต้นมีทางออกน้อยกว่า 2 ทาง ปิดวงไม่ได้นะ', 'warning', 'เคสนี้เป็นไปไม่ได้');
                 return;
             }
 
@@ -902,7 +1075,7 @@
                     finished = false;
                     drawStep();
                     info.textContent = "";
-                    alert("หา cycle ไม่เจอ (อาจเป็นไปไม่ได้จริง หรือเปลี่ยน start/การตัดช่อง)");
+                    showToast('ลองเปลี่ยนจุดเริ่มหรือช่องที่ตัดดูนะ อาจจะเป็นไปไม่ได้จริงๆ', 'warning', 'หา cycle ไม่เจอ');
                     return;
                 }
 
@@ -928,7 +1101,7 @@
                 finished = true;
                 applied = true;
                 drawStep();
-            } catch (e) { alert(e); }
+            } catch (e) { showToast(e, 'error'); }
         }
 
         function flashCell(r, c) {
